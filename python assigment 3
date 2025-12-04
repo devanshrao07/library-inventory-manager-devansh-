@@ -1,1 +1,162 @@
 
+class Book:
+    def _init_(self, title, author, isbn, status="available"):
+        self.title = title
+        self.author = author
+        self.isbn = isbn
+        self.status = status
+
+    def _str_(self):
+        return f"{self.title} | {self.author} | ISBN: {self.isbn} | Status: {self.status}"
+
+    def issue(self):
+        if self.status == "available":
+            self.status = "issued"
+            return True
+        return False
+
+    def return_book(self):
+        self.status = "available"
+
+    def is_available(self):
+        return self.status == "available"
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "author": self.author,
+            "isbn": self.isbn,
+            "status": self.status
+        }
+import json
+from pathlib import Path
+from library_manager.book import Book
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+class LibraryInventory:
+    def _init_(self, filename="data/books.json"):
+        self.filepath = Path(filename)
+        self.books = []
+        self.load_books()
+
+    def add_book(self, book):
+        self.books.append(book)
+        self.save_books()
+        logging.info("Book added successfully")
+
+    def search_by_title(self, title):
+        return [b for b in self.books if title.lower() in b.title.lower()]
+
+    def search_by_isbn(self, isbn):
+        for b in self.books:
+            if b.isbn == isbn:
+                return b
+        return None
+
+    def display_all(self):
+        return self.books
+
+    def save_books(self):
+        try:
+            with open(self.filepath, "w") as f:
+                json.dump([b.to_dict() for b in self.books], f, indent=4)
+        except Exception as e:
+            logging.error(f"Error saving file: {e}")
+
+    def load_books(self):
+        try:
+            if self.filepath.exists():
+                with open(self.filepath, "r") as f:
+                    data = json.load(f)
+                    self.books = [Book(**b) for b in data]
+            else:
+                self.books = []
+        except Exception as e:
+            logging.error(f"File corrupt or missing: {e}")
+            self.books = []
+from library_manager.inventory import LibraryInventory
+from library_manager.book import Book
+
+inventory = LibraryInventory()
+
+def menu():
+    print("\nLIBRARY INVENTORY MANAGER")
+    print("1. Add Book")
+    print("2. Issue Book")
+    print("3. Return Book")
+    print("4. View All Books")
+    print("5. Search Book")
+    print("6. Exit")
+
+while True:
+    menu()
+    choice = input("Enter choice: ")
+
+    try:
+        if choice == "1":
+            title = input("Title: ")
+            author = input("Author: ")
+            isbn = input("ISBN: ")
+            book = Book(title, author, isbn)
+            inventory.add_book(book)
+            print("Book added successfully")
+
+        elif choice == "2":
+            isbn = input("Enter ISBN: ")
+            book = inventory.search_by_isbn(isbn)
+            if book and book.issue():
+                inventory.save_books()
+                print("Book issued")
+            else:
+                print("Not available")
+
+        elif choice == "3":
+            isbn = input("Enter ISBN: ")
+            book = inventory.search_by_isbn(isbn)
+            if book:
+                book.return_book()
+                inventory.save_books()
+                print("Book returned")
+            else:
+                print("Book not found")
+
+        elif choice == "4":
+            for b in inventory.display_all():
+                print(b)
+
+        elif choice == "5":
+            title = input("Enter title: ")
+            results = inventory.search_by_title(title)
+            for r in results:
+                print(r)
+
+        elif choice == "6":
+            print("Exiting...")
+            break
+
+        else:
+            print("Invalid choice")
+
+    except Exception as e:
+        print("Error:", e)
+[]
+import unittest
+from library_manager.book import Book
+
+class TestBook(unittest.TestCase):
+    def test_issue(self):
+        b = Book("Python", "Guido", "123")
+        self.assertTrue(b.issue())
+
+    def test_return(self):
+        b = Book("Python", "Guido", "123", "issued")
+        b.return_book()
+        self.assertTrue(b.is_available())
+
+if _name_ == "_main_":
+    unittest.main()
+## Run the Program
+```bash
+python cli/main.py 
